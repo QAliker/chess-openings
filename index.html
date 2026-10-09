@@ -4,78 +4,133 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Roulette des ouvertures</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Figtree:wght@400;500;700;800&family=Red+Hat+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: board left, scoresheet panel right; stacks on phones. Palette from a green/buff club tournament board. */
+/* Table de casino x club d'échecs : feutre vert, laiton, rouge roulette. Plateau à gauche, ticket + feuille à droite ; empilé sur mobile. */
 :root {
-  --bg: #eef1ee; --surface: #ffffff; --fg: #1c2420; --muted: #5d6b64; --line: #d3dad5;
-  --sq-light: #ecebd2; --sq-dark: #6f8f5c; --accent: #2f6d4a; --accent-fg: #ffffff;
-  --hl: rgba(240, 200, 60, .55); --sel: rgba(47, 109, 74, .55); --ok: #2f7d4a; --bad: #b4412f;
-  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-  --body: "IBM Plex Sans", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --bg: oklch(0.95 0.015 95); --surface: oklch(0.985 0.008 95); --fg: oklch(0.24 0.03 160); --muted: oklch(0.48 0.03 160); --line: oklch(0.86 0.02 110);
+  --felt: oklch(0.42 0.08 158); --felt-deep: oklch(0.33 0.07 158);
+  --brass: oklch(0.78 0.12 82); --brass-deep: oklch(0.62 0.11 72);
+  --red: oklch(0.54 0.19 27); --red-deep: oklch(0.42 0.16 27); --on-red: oklch(0.97 0.02 90);
+  --sq-light: oklch(0.93 0.04 100); --sq-dark: oklch(0.6 0.08 140);
+  --hl: oklch(0.85 0.15 90 / .6); --sel: oklch(0.55 0.12 158 / .6); --ok: oklch(0.5 0.12 155); --bad: var(--red);
+  --pocket-w: oklch(0.96 0.02 95); --pocket-b: oklch(0.2 0.02 160);
+  --display: "Bungee", "Impact", system-ui, sans-serif;
+  --body: "Figtree", system-ui, sans-serif;
+  --mono: "Red Hat Mono", ui-monospace, monospace;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #141a17; --surface: #1d2521; --fg: #e6ece8; --muted: #9aa8a0; --line: #2f3a34;
-  --sq-light: #c9c8ae; --sq-dark: #587548; --accent: #6fbf8c; --accent-fg: #0f1612;
-  --ok: #6fcf8c; --bad: #ec7a66; color-scheme: dark } }
+  --bg: oklch(0.2 0.035 160); --surface: oklch(0.25 0.035 160); --fg: oklch(0.93 0.015 95); --muted: oklch(0.72 0.025 150); --line: oklch(0.35 0.035 160);
+  --felt: oklch(0.31 0.06 158); --felt-deep: oklch(0.24 0.05 158);
+  --brass: oklch(0.8 0.12 82); --brass-deep: oklch(0.6 0.1 72);
+  --red: oklch(0.62 0.18 27); --red-deep: oklch(0.45 0.15 27);
+  --sq-light: oklch(0.85 0.04 100); --sq-dark: oklch(0.53 0.07 140);
+  --ok: oklch(0.75 0.13 155); --bad: oklch(0.72 0.15 27); color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #141a17; --surface: #1d2521; --fg: #e6ece8; --muted: #9aa8a0; --line: #2f3a34;
-  --sq-light: #c9c8ae; --sq-dark: #587548; --accent: #6fbf8c; --accent-fg: #0f1612;
-  --ok: #6fcf8c; --bad: #ec7a66; color-scheme: dark }
+  --bg: oklch(0.2 0.035 160); --surface: oklch(0.25 0.035 160); --fg: oklch(0.93 0.015 95); --muted: oklch(0.72 0.025 150); --line: oklch(0.35 0.035 160);
+  --felt: oklch(0.31 0.06 158); --felt-deep: oklch(0.24 0.05 158);
+  --brass: oklch(0.8 0.12 82); --brass-deep: oklch(0.6 0.1 72);
+  --red: oklch(0.62 0.18 27); --red-deep: oklch(0.45 0.15 27);
+  --sq-light: oklch(0.85 0.04 100); --sq-dark: oklch(0.53 0.07 140);
+  --ok: oklch(0.75 0.13 155); --bad: oklch(0.72 0.15 27); color-scheme: dark }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; padding: 24px 16px; }
-.wrap { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 32px; align-items: start; }
-@media (max-width: 820px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; } }
-header { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
-h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 40px); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 3px; }
-.seg button { border: 0; background: none; color: var(--muted); font: 500 14px var(--body); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
-.board { position: relative; display: grid; grid-template: repeat(8, minmax(0, 1fr)) / repeat(8, minmax(0, 1fr)); width: 100%; aspect-ratio: 1; max-width: 100%; border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 6px var(--surface), 0 8px 30px rgba(0,0,0,.15); user-select: none; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.5 var(--body); padding: 24px 16px 48px; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1060px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 24px 40px; align-items: start; }
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+
+/* En-tête : enseigne de foire avec une rangée d'ampoules qui clignotent pendant le tirage */
+header { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: end; justify-content: space-between; }
+h1 { font: 400 clamp(26px, 5vw, 44px)/1 var(--display); margin: 0; letter-spacing: .01em; color: var(--fg); padding-bottom: 16px;
+  background: radial-gradient(circle, var(--brass) 2.5px, transparent 3px) 0 100% / 16px 10px repeat-x; }
+h1 span { color: var(--red); }
+.spinning h1 { animation: bulbs .24s steps(2) infinite; }
+@keyframes bulbs { to { background-position: 8px 100%; } }
+
+/* Filtre : jetons de mise */
+.seg { display: inline-flex; gap: 6px; }
+.seg button { border: 2px dashed var(--line); background: var(--surface); color: var(--muted); font-weight: 700; font-size: 14px; padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: transform .15s var(--ease-out), border-color .15s; }
+.seg button:hover { border-color: var(--brass-deep); }
+.seg button[aria-pressed="true"] { background: var(--felt); color: var(--on-red); border: 2px dashed var(--brass); }
+.seg button:active { transform: scale(.95); }
+
+/* Plateau posé sur un tapis de feutre cerclé de laiton */
+.mat { background: var(--felt); padding: clamp(8px, 2vw, 16px); border-radius: 16px; box-shadow: inset 0 0 0 2px var(--brass-deep), inset 0 0 0 6px var(--felt), inset 0 0 0 7px oklch(0.78 0.12 82 / .35), 0 18px 40px -18px oklch(0.2 0.05 160 / .6); }
+.board { position: relative; display: grid; grid-template: repeat(8, minmax(0, 1fr)) / repeat(8, minmax(0, 1fr)); width: 100%; aspect-ratio: 1; border-radius: 4px; overflow: hidden; user-select: none; box-shadow: 0 0 0 2px var(--felt-deep); }
 .board.shake { animation: shake .35s; }
-@keyframes shake { 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 .sq { position: relative; display: grid; place-items: center; cursor: pointer; }
 .sq.l { background: var(--sq-light); } .sq.d { background: var(--sq-dark); }
 .sq.last::before, .sq.sel::before, .sq.hint::before { content: ""; position: absolute; inset: 0; }
 .sq.last::before { background: var(--hl); } .sq.sel::before { background: var(--sel); }
-.sq.hint::before { box-shadow: inset 0 0 0 4px var(--bad); }
-.sq.dot::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: rgba(0,0,0,.22); }
+.sq.hint::before { box-shadow: inset 0 0 0 4px var(--red); }
+.sq.dot::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: oklch(0.2 0.03 160 / .25); }
 .pc { position: relative; font-size: min(9.5vw, 54px); line-height: 1; font-variant-emoji: text; }
-.pc.w { color: #fbfbf6; text-shadow: 0 0 1px #000, 0 0 1px #000, 0 1px 2px rgba(0,0,0,.6); }
-.pc.b { color: #18201b; text-shadow: 0 0 1px rgba(255,255,255,.4); }
-.coord { position: absolute; font: 600 10px var(--mono); opacity: .7; pointer-events: none; }
+.pc.w { color: oklch(0.98 0.01 95); text-shadow: 0 0 1px oklch(0.15 0.02 160), 0 0 1px oklch(0.15 0.02 160), 0 1px 2px oklch(0.15 0.02 160 / .6); }
+.pc.b { color: oklch(0.2 0.02 160); text-shadow: 0 0 1px oklch(1 0 0 / .4); }
+.coord { position: absolute; font: 600 10px var(--mono); opacity: .75; pointer-events: none; }
 .coord.f { right: 3px; bottom: 1px; } .coord.r { left: 3px; top: 2px; }
 .sq.l .coord { color: var(--sq-dark); } .sq.d .coord { color: var(--sq-light); }
-.nav { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
-.btn { border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 600 14px var(--body); padding: 9px 14px; border-radius: 8px; cursor: pointer; }
-.btn:hover { border-color: var(--accent); }
-.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-.btn:focus-visible, .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.panel { display: grid; gap: 18px; min-width: 0; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 10px; }
-.eyebrow { font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
-.tag { color: var(--accent); }
-h2 { font-family: var(--display); font-weight: 600; font-size: 26px; margin: 0; text-wrap: balance; }
-.idea { margin: 0; line-height: 1.55; color: var(--muted); max-width: 62ch; }
-.moves { font: 400 15px/1.9 var(--mono); display: flex; flex-wrap: wrap; gap: 0 4px; }
-.moves .n { color: var(--muted); margin-left: 6px; }
-.moves button { border: 0; background: none; color: var(--fg); font: inherit; padding: 0 4px; border-radius: 4px; cursor: pointer; }
-.moves button.cur { background: var(--accent); color: var(--accent-fg); }
+
+.nav { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.nav button { width: 44px; height: 44px; font-weight: 700; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); cursor: pointer; font-size: 14px; transition: border-color .15s, transform .15s var(--ease-out); }
+.nav button:hover { border-color: var(--brass-deep); }
+.nav button:active { transform: scale(.92); }
+
+.panel { display: grid; gap: 28px; min-width: 0; }
+
+/* Ticket de tirage : poche de roulette (code ECO) + fenêtre de rouleau pour le nom */
+.ticket { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 18px; align-items: center; }
+.ticket::before, .ticket::after { content: ""; position: absolute; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
+.ticket::before { left: -10px; clip-path: inset(0 0 0 50%); } .ticket::after { right: -10px; clip-path: inset(0 50% 0 0); }
+.pocket { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font: 600 15px var(--mono); grid-row: span 2;
+  background: var(--pocket-w); color: var(--pocket-b); box-shadow: 0 0 0 3px var(--brass), 0 0 0 6px var(--surface), 0 0 0 7px var(--line); }
+.pocket.b { background: var(--pocket-b); color: var(--pocket-w); }
+.side { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); align-self: end; }
+.reel { overflow: hidden; align-self: start; }
+h2 { font: 800 clamp(22px, 2.6vw, 28px)/1.15 var(--body); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.tick h2 { animation: tick .07s linear; filter: blur(.6px); }
+.land h2 { animation: land .5s var(--ease-out); }
+.land .pocket { animation: pop .5s var(--ease-out); }
+@keyframes tick { from { transform: translateY(-70%); opacity: .3; } }
+@keyframes land { from { transform: translateY(-40%); opacity: 0; } }
+@keyframes pop { 40% { transform: scale(1.12) rotate(-12deg); } }
+.idea { grid-column: 1 / -1; margin: 14px 0 0; padding-top: 14px; border-top: 1px dashed var(--line); color: var(--muted); max-width: 62ch; }
+.spinning .idea { opacity: 0; }
+
+/* Feuille de notation */
+.sheet { display: grid; gap: 14px; }
+.label { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.moves { font: 400 15px/2 var(--mono); display: flex; flex-wrap: wrap; gap: 0 2px; }
+.moves .n { color: var(--muted); margin-left: 8px; }
+.moves .n:first-child { margin-left: 0; }
+.moves button { border: 0; background: none; padding: 0 5px; border-radius: 6px; cursor: pointer; }
+.moves button:hover { background: var(--line); }
+.moves button.cur { background: var(--brass); color: var(--pocket-b); font-weight: 600; }
 .moves button.future { color: var(--muted); opacity: .5; }
 .moves.hidden button.future { visibility: hidden; }
-.status { font-weight: 600; min-height: 1.4em; margin: 0; }
+.status { font-weight: 700; min-height: 1.5em; margin: 0; }
 .status.ok { color: var(--ok); } .status.bad { color: var(--bad); }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.roll { font: 400 18px var(--display); letter-spacing: .02em; background: var(--red); color: var(--on-red); border: 0; padding: 14px 26px; border-radius: 999px; cursor: pointer;
+  box-shadow: 0 0 0 3px var(--brass), 0 5px 0 3px var(--brass-deep); transition: transform .12s var(--ease-out), box-shadow .12s var(--ease-out); }
+.roll:hover { background: color-mix(in oklch, var(--red), white 8%); }
+.roll:active { transform: translateY(4px); box-shadow: 0 0 0 3px var(--brass), 0 1px 0 3px var(--brass-deep); }
+.ghost { font-weight: 700; background: none; border: 2px solid var(--line); padding: 12px 20px; border-radius: 999px; cursor: pointer; transition: border-color .15s; }
+.ghost:hover { border-color: var(--felt); }
 .score { font: 400 13px var(--mono); color: var(--muted); }
-@media (prefers-reduced-motion: reduce) { .board.shake { animation: none; } }
+button:focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 
 <div class="wrap">
   <header>
-    <h1>Roulette des ouvertures</h1>
+    <h1>Roulette <span>des</span> ouvertures</h1>
     <div class="seg" role="group" aria-label="Couleur">
       <button id="f-all" data-f="all" aria-pressed="true">Les deux</button>
       <button id="f-w" data-f="w" aria-pressed="false">Blancs</button>
@@ -84,28 +139,29 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 26px; margin: 0; 
   </header>
 
   <div>
-    <div class="board" id="board" aria-label="Échiquier"></div>
+    <div class="mat"><div class="board" id="board" aria-label="Échiquier"></div></div>
     <div class="nav">
-      <button class="btn" id="first" aria-label="Début">⏮</button>
-      <button class="btn" id="prev" aria-label="Coup précédent">◀</button>
-      <button class="btn" id="next" aria-label="Coup suivant">▶</button>
-      <button class="btn" id="last" aria-label="Fin">⏭</button>
+      <button id="first" aria-label="Début">«</button>
+      <button id="prev" aria-label="Coup précédent">◀</button>
+      <button id="next" aria-label="Coup suivant">▶</button>
+      <button id="last" aria-label="Fin">»</button>
     </div>
   </div>
 
   <div class="panel">
-    <div class="card">
-      <div class="eyebrow"><span id="eco"></span><span class="tag" id="side"></span></div>
-      <h2 id="name"></h2>
+    <div class="ticket" id="ticket" aria-live="polite">
+      <div class="pocket" id="eco"></div>
+      <div class="side" id="side"></div>
+      <div class="reel"><h2 id="name"></h2></div>
       <p class="idea" id="idea"></p>
     </div>
-    <div class="card">
-      <div class="eyebrow">Ligne principale</div>
+    <div class="sheet">
+      <p class="label">Ligne principale</p>
       <div class="moves" id="moves"></div>
       <p class="status" id="status"></p>
       <div class="actions">
-        <button class="btn primary" id="roll">Tirer une ouverture</button>
-        <button class="btn" id="train">S'entraîner</button>
+        <button class="roll" id="roll">Tirer !</button>
+        <button class="ghost" id="train">S'entraîner</button>
       </div>
       <div class="score" id="score"></div>
     </div>
@@ -178,6 +234,7 @@ let score = { ok: 0, total: 0 };
 function load(o) {
   cur = o; moves = o.line.split(" "); mode = "view"; sel = null;
   $("eco").textContent = o.eco;
+  $("eco").className = "pocket " + o.side;
   $("side").textContent = o.side === "w" ? "Avec les Blancs" : "Avec les Noirs";
   $("name").textContent = o.n;
   $("idea").textContent = o.idea;
@@ -185,9 +242,26 @@ function load(o) {
   goTo(moves.length);
 }
 
+// Rouleau : les noms défilent en ralentissant puis s'arrêtent sur le tirage. Instantané si mouvement réduit.
+let spinning = false;
 function roll() {
+  if (spinning) return;
   const pool = OPENINGS.filter(o => (filter === "all" || o.side === filter) && o !== cur);
-  load(pool[Math.floor(Math.random() * pool.length)]);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  if (!cur || matchMedia("(prefers-reduced-motion: reduce)").matches) return load(pick);
+  spinning = true; clearTimeout(timer); mode = "view"; sel = null; setStatus("");
+  const t = $("ticket"); document.body.classList.add("spinning"); t.classList.remove("land");
+  let i = 0;
+  (function tick() {
+    if (i++ < 14) {
+      const o = pool[i % pool.length];
+      $("name").textContent = o.n; $("eco").textContent = o.eco;
+      t.classList.remove("tick"); void t.offsetWidth; t.classList.add("tick");
+      return setTimeout(tick, 40 + i * i * 1.4);
+    }
+    t.classList.remove("tick"); document.body.classList.remove("spinning");
+    load(pick); void t.offsetWidth; t.classList.add("land"); spinning = false;
+  })();
 }
 
 function goTo(n) {
@@ -285,7 +359,7 @@ document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
   if (!cur || (filter !== "all" && cur.side !== filter)) roll();
 });
 $("roll").onclick = roll;
-$("train").onclick = () => mode === "train" ? (mode = "view", sel = null, setStatus(""), goTo(moves.length)) : startTrain();
+$("train").onclick = () => spinning ? 0 : mode === "train" ? (mode = "view", sel = null, setStatus(""), goTo(moves.length)) : startTrain();
 const nav = n => { if (mode === "view") goTo(Math.max(0, Math.min(moves.length, n))); };
 $("first").onclick = () => nav(0);
 $("prev").onclick = () => nav(ply - 1);
