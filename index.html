@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roulette des ouvertures</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: board left, scoresheet panel right; stacks on phones. Palette from a green/buff club tournament board. */
+:root {
+  --bg: #eef1ee; --surface: #ffffff; --fg: #1c2420; --muted: #5d6b64; --line: #d3dad5;
+  --sq-light: #ecebd2; --sq-dark: #6f8f5c; --accent: #2f6d4a; --accent-fg: #ffffff;
+  --hl: rgba(240, 200, 60, .55); --sel: rgba(47, 109, 74, .55); --ok: #2f7d4a; --bad: #b4412f;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141a17; --surface: #1d2521; --fg: #e6ece8; --muted: #9aa8a0; --line: #2f3a34;
+  --sq-light: #c9c8ae; --sq-dark: #587548; --accent: #6fbf8c; --accent-fg: #0f1612;
+  --ok: #6fcf8c; --bad: #ec7a66; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141a17; --surface: #1d2521; --fg: #e6ece8; --muted: #9aa8a0; --line: #2f3a34;
+  --sq-light: #c9c8ae; --sq-dark: #587548; --accent: #6fbf8c; --accent-fg: #0f1612;
+  --ok: #6fcf8c; --bad: #ec7a66; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; padding: 24px 16px; }
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 820px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; } }
+header { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 40px); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 3px; }
+.seg button { border: 0; background: none; color: var(--muted); font: 500 14px var(--body); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.board { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; max-width: 100%; border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 6px var(--surface), 0 8px 30px rgba(0,0,0,.15); user-select: none; }
+.board.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+.sq { position: relative; display: grid; place-items: center; cursor: pointer; }
+.sq.l { background: var(--sq-light); } .sq.d { background: var(--sq-dark); }
+.sq.last::before, .sq.sel::before, .sq.hint::before { content: ""; position: absolute; inset: 0; }
+.sq.last::before { background: var(--hl); } .sq.sel::before { background: var(--sel); }
+.sq.hint::before { box-shadow: inset 0 0 0 4px var(--bad); }
+.sq.dot::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: rgba(0,0,0,.22); }
+.pc { position: relative; font-size: min(9.5vw, 54px); line-height: 1; font-variant-emoji: text; }
+.pc.w { color: #fbfbf6; text-shadow: 0 0 1px #000, 0 0 1px #000, 0 1px 2px rgba(0,0,0,.6); }
+.pc.b { color: #18201b; text-shadow: 0 0 1px rgba(255,255,255,.4); }
+.coord { position: absolute; font: 600 10px var(--mono); opacity: .7; pointer-events: none; }
+.coord.f { right: 3px; bottom: 1px; } .coord.r { left: 3px; top: 2px; }
+.sq.l .coord { color: var(--sq-dark); } .sq.d .coord { color: var(--sq-light); }
+.nav { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 600 14px var(--body); padding: 9px 14px; border-radius: 8px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn:focus-visible, .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.panel { display: grid; gap: 18px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 10px; }
+.eyebrow { font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+.tag { color: var(--accent); }
+h2 { font-family: var(--display); font-weight: 600; font-size: 26px; margin: 0; text-wrap: balance; }
+.idea { margin: 0; line-height: 1.55; color: var(--muted); max-width: 62ch; }
+.moves { font: 400 15px/1.9 var(--mono); display: flex; flex-wrap: wrap; gap: 0 4px; }
+.moves .n { color: var(--muted); margin-left: 6px; }
+.moves button { border: 0; background: none; color: var(--fg); font: inherit; padding: 0 4px; border-radius: 4px; cursor: pointer; }
+.moves button.cur { background: var(--accent); color: var(--accent-fg); }
+.moves button.future { color: var(--muted); opacity: .5; }
+.moves.hidden button.future { visibility: hidden; }
+.status { font-weight: 600; min-height: 1.4em; margin: 0; }
+.status.ok { color: var(--ok); } .status.bad { color: var(--bad); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.score { font: 400 13px var(--mono); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .board.shake { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Roulette des ouvertures</h1>
+    <div class="seg" role="group" aria-label="Couleur">
+      <button id="f-all" data-f="all" aria-pressed="true">Les deux</button>
+      <button id="f-w" data-f="w" aria-pressed="false">Blancs</button>
+      <button id="f-b" data-f="b" aria-pressed="false">Noirs</button>
+    </div>
+  </header>
+
+  <div>
+    <div class="board" id="board" aria-label="Échiquier"></div>
+    <div class="nav">
+      <button class="btn" id="first" aria-label="Début">⏮</button>
+      <button class="btn" id="prev" aria-label="Coup précédent">◀</button>
+      <button class="btn" id="next" aria-label="Coup suivant">▶</button>
+      <button class="btn" id="last" aria-label="Fin">⏭</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <div class="eyebrow"><span id="eco"></span><span class="tag" id="side"></span></div>
+      <h2 id="name"></h2>
+      <p class="idea" id="idea"></p>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Ligne principale</div>
+      <div class="moves" id="moves"></div>
+      <p class="status" id="status"></p>
+      <div class="actions">
+        <button class="btn primary" id="roll">Tirer une ouverture</button>
+        <button class="btn" id="train">S'entraîner</button>
+      </div>
+      <div class="score" id="score"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" integrity="sha384-aH7F59TKSh8OEAivbclch9UUnWn/Uy8AQlYYKzpVaQkAp8W6IF2VocW/knEeRwT0" crossorigin="anonymous"></script>
+<script>
+// side = la couleur qui choisit l'ouverture (w: ouverture des Blancs, b: défense des Noirs)
+const OPENINGS = [
+  { n: "Partie italienne (Giuoco Piano)", eco: "C54", side: "w", line: "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4+",
+    idea: "Développement rapide, fou en c4 qui vise f7, puis c3-d4 pour bâtir un grand centre." },
+  { n: "Partie espagnole (Ruy Lopez)", eco: "C84", side: "w", line: "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6",
+    idea: "Le fou b5 met la pression sur le défenseur de e5. Partie lente et stratégique, très solide." },
+  { n: "Partie écossaise", eco: "C45", side: "w", line: "e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Bc5 Be3 Qf6 c3 Nge7",
+    idea: "On ouvre le centre tout de suite avec d4. Jeu ouvert, pièces actives, peu de théorie à retenir." },
+  { n: "Gambit Evans", eco: "C51", side: "w", line: "e4 e5 Nf3 Nc6 Bc4 Bc5 b4 Bxb4 c3 Ba5 d4 exd4 O-O",
+    idea: "On sacrifie le pion b pour gagner du temps et ouvrir le centre. Attaque garantie contre f7." },
+  { n: "Gambit du roi", eco: "C39", side: "w", line: "e4 e5 f4 exf4 Nf3 g5 h4 g4 Ne5",
+    idea: "Romantique : on donne le pion f pour ouvrir la colonne f et attaquer le roi noir. Très tranchant." },
+  { n: "Partie viennoise", eco: "C29", side: "w", line: "e4 e5 Nc3 Nf6 f4 d5 fxe5 Nxe4 Nf3 Be7",
+    idea: "Cavalier c3 d'abord, puis f4 : un gambit du roi mieux préparé." },
+  { n: "Gambit dame décliné", eco: "D55", side: "w", line: "d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 h6",
+    idea: "c4 attaque le centre noir. Les Blancs prennent de l'espace et clouent le cavalier avec Fg5." },
+  { n: "Système de Londres", eco: "D02", side: "w", line: "d4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 e6 Ngf3 Bd6 Bg3",
+    idea: "Toujours le même schéma (d4, Ff4, e3, c3) quoi que fassent les Noirs. Idéal pour peu de théorie." },
+  { n: "Ouverture catalane", eco: "E04", side: "w", line: "d4 Nf6 c4 e6 g3 d5 Bg2 dxc4 Nf3 c5 O-O Nc6",
+    idea: "Le fou en g2 vise la grande diagonale. On rend parfois le pion c4 pour une pression durable." },
+  { n: "Ouverture anglaise", eco: "A29", side: "w", line: "c4 e5 Nc3 Nf6 Nf3 Nc6 g3 d5 cxd5 Nxd5 Bg2 Nb6",
+    idea: "Une sicilienne avec un temps de plus. Contrôle du centre à distance, jeu de position." },
+  { n: "Ouverture Réti", eco: "A07", side: "w", line: "Nf3 d5 g3 Nf6 Bg2 e6 O-O Be7 d3 O-O",
+    idea: "On laisse les Noirs occuper le centre pour l'attaquer ensuite avec c4 ou e4. Flexible." },
+
+  { n: "Sicilienne Najdorf", eco: "B90", side: "b", line: "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6",
+    idea: "La défense de combat par excellence. a6 prépare ...e5 ou ...b5, jeu sur l'aile dame." },
+  { n: "Sicilienne Dragon", eco: "B76", side: "b", line: "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O",
+    idea: "Fou en fianchetto sur la grande diagonale. Souvent roques opposés et course à l'attaque." },
+  { n: "Défense française", eco: "C14", side: "b", line: "e4 e6 d4 d5 Nc3 Nf6 Bg5 Be7 e5 Nfd7 Bxe7 Qxe7",
+    idea: "Solide mais un peu passive. On attaque la chaîne de pions blanche avec ...c5 et ...f6." },
+  { n: "Défense Caro-Kann", eco: "B19", side: "b", line: "e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5 Ng3 Bg6 h4 h6 Nf3 Nd7",
+    idea: "Comme la française, mais le fou c8 sort avant ...e6. Structure saine, finales confortables." },
+  { n: "Défense scandinave", eco: "B01", side: "b", line: "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 Bf5 Bc4 e6",
+    idea: "On conteste e4 dès le premier coup. La dame sort tôt mais se replie en a5, plan simple." },
+  { n: "Défense Petrov", eco: "C42", side: "b", line: "e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4 d4 d5 Bd3 Nc6",
+    idea: "On contre-attaque e4 au lieu de défendre e5. Très solide, réputée pour annuler." },
+  { n: "Défense Alekhine", eco: "B03", side: "b", line: "e4 Nf6 e5 Nd5 d4 d6 c4 Nb6 exd6 cxd6",
+    idea: "On provoque les pions blancs pour qu'ils avancent, puis on les attaque comme cibles." },
+  { n: "Défense Pirc", eco: "B07", side: "b", line: "e4 d6 d4 Nf6 Nc3 g6 Nf3 Bg7 Be2 O-O O-O c6",
+    idea: "Hypermoderne : on laisse le centre aux Blancs puis on le sape avec ...e5 ou ...c5." },
+  { n: "Défense est-indienne", eco: "E97", side: "b", line: "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O Nc6 d5 Ne7",
+    idea: "Les Blancs jouent à l'aile dame, les Noirs lancent ...f5 et attaquent le roi. Très dynamique." },
+  { n: "Défense nimzo-indienne", eco: "E32", side: "b", line: "d4 Nf6 c4 e6 Nc3 Bb4 Qc2 O-O a3 Bxc3+ Qxc3 b6",
+    idea: "Le clouage Fb4 empêche e4. On accepte de donner la paire de fous pour abîmer les pions blancs." },
+  { n: "Défense slave", eco: "D17", side: "b", line: "d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5 e3 e6 Bxc4 Bb4",
+    idea: "On soutient d5 avec c6 sans enfermer le fou c8. Solide et simple à jouer." },
+  { n: "Défense Grünfeld", eco: "D85", side: "b", line: "d4 Nf6 c4 g6 Nc3 d5 cxd5 Nxd5 e4 Nxc3 bxc3 Bg7 Nf3 c5",
+    idea: "On laisse les Blancs bâtir un grand centre pour le bombarder avec le fou g7 et ...c5." },
+  { n: "Défense hollandaise", eco: "A87", side: "b", line: "d4 f5 Nf3 Nf6 g3 g6 Bg2 Bg7 O-O O-O c4 d6",
+    idea: "...f5 contrôle e4 et prépare une attaque à l'aile roi. Ambitieuse, un peu risquée." },
+  { n: "Benoni moderne", eco: "A70", side: "b", line: "d4 Nf6 c4 c5 d5 e6 Nc3 exd5 cxd5 d6 e4 g6 Nf3 Bg7",
+    idea: "Déséquilibre immédiat : majorité à l'aile dame pour les Noirs, centre pour les Blancs." },
+];
+
+const GLYPH = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+const $ = id => document.getElementById(id);
+const game = new Chess();
+let filter = "all", cur = null, moves = [], ply = 0, mode = "view", sel = null, errors = 0, timer = null;
+let score = { ok: 0, total: 0 };
+
+function load(o) {
+  cur = o; moves = o.line.split(" "); mode = "view"; sel = null;
+  $("eco").textContent = o.eco;
+  $("side").textContent = o.side === "w" ? "Avec les Blancs" : "Avec les Noirs";
+  $("name").textContent = o.n;
+  $("idea").textContent = o.idea;
+  setStatus("");
+  goTo(moves.length);
+}
+
+function roll() {
+  const pool = OPENINGS.filter(o => (filter === "all" || o.side === filter) && o !== cur);
+  load(pool[Math.floor(Math.random() * pool.length)]);
+}
+
+function goTo(n) {
+  clearTimeout(timer);
+  game.reset();
+  for (let i = 0; i < n; i++) game.move(moves[i], { sloppy: true });
+  ply = n; render();
+}
+
+function render() {
+  const b = $("board"); b.innerHTML = "";
+  const files = "abcdefgh", flip = cur.side === "b";
+  const last = game.history({ verbose: true }).pop();
+  const dots = sel ? game.moves({ square: sel, verbose: true }).map(m => m.to) : [];
+  const hintSq = mode === "train" && errors > 0 && ply < moves.length ? expected()?.from : null;
+  for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+    const file = flip ? 7 - f : f, rank = flip ? r + 1 : 8 - r;
+    const sq = files[file] + rank, d = document.createElement("div");
+    d.className = "sq " + ((file + rank) % 2 ? "l" : "d");
+    if (last && (sq === last.from || sq === last.to)) d.classList.add("last");
+    if (sq === sel) d.classList.add("sel");
+    if (dots.includes(sq)) d.classList.add("dot");
+    if (sq === hintSq) d.classList.add("hint");
+    const p = game.get(sq);
+    if (p) d.innerHTML = `<span class="pc ${p.color}">${GLYPH[p.type]}&#xFE0E;</span>`;
+    if (f === 7) d.insertAdjacentHTML("beforeend", `<span class="coord r">${rank}</span>`);
+    if (r === 7) d.insertAdjacentHTML("beforeend", `<span class="coord f">${files[file]}</span>`);
+    d.onclick = () => click(sq);
+    b.appendChild(d);
+  }
+  const mv = $("moves"); mv.innerHTML = "";
+  mv.classList.toggle("hidden", mode === "train");
+  moves.forEach((m, i) => {
+    if (i % 2 === 0) mv.insertAdjacentHTML("beforeend", `<span class="n">${i / 2 + 1}.</span>`);
+    const btn = document.createElement("button");
+    btn.textContent = m;
+    if (i === ply - 1) btn.className = "cur"; else if (i >= ply) btn.className = "future";
+    btn.onclick = () => { if (mode === "view") goTo(i + 1); };
+    mv.appendChild(btn);
+  });
+  $("train").textContent = mode === "train" ? "Arrêter" : "S'entraîner";
+  $("score").textContent = score.total ? `Lignes réussies sans faute : ${score.ok} / ${score.total}` : "";
+}
+
+function expected() {
+  const m = game.move(moves[ply], { sloppy: true });
+  if (m) game.undo();
+  return m;
+}
+
+function setStatus(t, cls = "") { const s = $("status"); s.textContent = t; s.className = "status " + cls; }
+
+function startTrain() {
+  mode = "train"; errors = 0; sel = null; cur.clean = true;
+  goTo(0);
+  setStatus(cur.side === "w" ? "À toi de jouer les coups blancs." : "À toi de jouer les coups noirs.");
+  step();
+}
+
+function step() {
+  if (ply >= moves.length) {
+    mode = "view"; score.total++; if (cur.clean) score.ok++;
+    setStatus(cur.clean ? "Ligne jouée sans faute." : "Ligne terminée. Rejoue-la pour la jouer sans faute.", "ok");
+    render(); return;
+  }
+  render();
+  if (game.turn() !== cur.side) timer = setTimeout(() => { game.move(moves[ply], { sloppy: true }); ply++; step(); }, 450);
+}
+
+function click(sq) {
+  if (mode !== "train" || game.turn() !== cur.side || ply >= moves.length) return;
+  const p = game.get(sq);
+  if (sel && sel !== sq && game.moves({ square: sel, verbose: true }).some(m => m.to === sq)) {
+    const exp = expected(), from = sel;
+    sel = null;
+    if (exp.from === from && exp.to === sq) {
+      game.move(moves[ply], { sloppy: true }); ply++; errors = 0;
+      setStatus("Bien joué : " + exp.san, "ok"); step();
+    } else {
+      errors++; cur.clean = false;
+      $("board").classList.remove("shake"); void $("board").offsetWidth; $("board").classList.add("shake");
+      setStatus(errors >= 2 ? `Pas ça. Le coup attendu est ${exp.san}.` : "Pas le coup de la ligne. La pièce à jouer est encadrée.", "bad");
+      render();
+    }
+    return;
+  }
+  sel = p && p.color === cur.side && sel !== sq ? sq : null;
+  render();
+}
+
+document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+  filter = b.dataset.f;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  try { localStorage.setItem("filter", filter); } catch {}
+  if (!cur || (filter !== "all" && cur.side !== filter)) roll();
+});
+$("roll").onclick = roll;
+$("train").onclick = () => mode === "train" ? (mode = "view", sel = null, setStatus(""), goTo(moves.length)) : startTrain();
+const nav = n => { if (mode === "view") goTo(Math.max(0, Math.min(moves.length, n))); };
+$("first").onclick = () => nav(0);
+$("prev").onclick = () => nav(ply - 1);
+$("next").onclick = () => nav(ply + 1);
+$("last").onclick = () => nav(moves.length);
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft") nav(ply - 1);
+  if (e.key === "ArrowRight") nav(ply + 1);
+});
+
+try { const f = localStorage.getItem("filter"); if (f) $("f-" + f)?.click(); } catch {}
+if (!cur) roll();
+</script>
+</body>
+</html>
