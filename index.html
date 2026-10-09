@@ -32,7 +32,7 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 3px; }
 .seg button { border: 0; background: none; color: var(--muted); font: 500 14px var(--body); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
-.board { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; max-width: 100%; border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 6px var(--surface), 0 8px 30px rgba(0,0,0,.15); user-select: none; }
+.board { position: relative; display: grid; grid-template: repeat(8, minmax(0, 1fr)) / repeat(8, minmax(0, 1fr)); width: 100%; aspect-ratio: 1; max-width: 100%; border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 6px var(--surface), 0 8px 30px rgba(0,0,0,.15); user-select: none; }
 .board.shake { animation: shake .35s; }
 @keyframes shake { 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
 .sq { position: relative; display: grid; place-items: center; cursor: pointer; }
